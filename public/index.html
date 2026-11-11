@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sales Performance Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{--bg:#f4f6fb;--card:#fff;--text:#1b2437;--muted:#6b7590;--line:#e4e8f1;--brand:#4f46e5;--brand2:#e0e7ff;--good:#16a34a;
+ --c1:#4f46e5;--c2:#06b6d4;--c3:#f59e0b;--c4:#ef4444;--c5:#10b981;--c6:#a855f7;--c7:#ec4899;
+ box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1420;--card:#171e2e;--text:#e8ecf7;--muted:#929ec0;--line:#26304a;--brand:#818cf8;--brand2:#25295a;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0f1420;--card:#171e2e;--text:#e8ecf7;--muted:#929ec0;--line:#26304a;--brand:#818cf8;--brand2:#25295a;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.app{display:grid;grid-template-columns:220px 1fr;min-height:100vh}
+.side{background:var(--card);border-right:1px solid var(--line);padding:20px 14px;position:sticky;top:0;height:100vh}
+.logo{font-weight:700;font-size:17px;margin:0 8px 22px;display:flex;gap:8px;align-items:center}
+.logo i{background:var(--brand);color:#fff;border-radius:8px;width:30px;height:30px;display:grid;place-items:center;font-style:normal}
+.nav button{display:block;width:100%;text-align:left;border:0;background:none;color:var(--muted);padding:10px 12px;border-radius:10px;font:inherit;font-weight:600;cursor:pointer;margin-bottom:4px}
+.nav button.on,.nav button:hover{background:var(--brand2);color:var(--brand)}
+main{padding:22px;min-width:0}
+h1{font-size:22px;margin:0}.sub{color:var(--muted);font-size:13px}
+.top{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+.filters{display:flex;gap:10px;flex-wrap:wrap;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:18px}
+.filters label{display:flex;flex-direction:column;font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;gap:4px;flex:1 1 130px}
+select,input[type=date],textarea{font:inherit;font-size:14px;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:var(--bg);color:var(--text);width:100%}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:12px;margin-bottom:18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;border-top:3px solid var(--c)}
+.card .l{font-size:12px;color:var(--muted);font-weight:600}.card .v{font-size:25px;font-weight:700;margin:4px 0 2px}.card .s{font-size:12px;color:var(--muted)}.bar{height:6px;border-radius:4px;background:var(--line);margin:8px 0 6px;overflow:hidden}.bar b{display:block;height:100%;border-radius:4px}.tr{font-size:12px;font-weight:700}
+.qs{display:flex;gap:3px;margin:8px 0 6px}.qs i{flex:1;height:6px;border-radius:3px;background:var(--q);opacity:.25}.qs i.on{opacity:1}
+.card.q{grid-column:span 2}.qsel{width:auto;min-width:80px}.card.q .qb{font-size:25px;font-weight:700;margin:4px 0 2px}
+.tgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}.tgrid label{display:flex;flex-direction:column;gap:4px;font-weight:600;font-size:12px;color:var(--muted)}.tgrid input{font:inherit;font-size:14px;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:var(--bg);color:var(--text);width:100%}
+input[type=password]{font:inherit;font-size:14px;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:var(--bg);color:var(--text);width:240px;max-width:100%}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-bottom:18px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;min-width:0}
+.panel.wide{grid-column:1/-1}
+.ph{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.ph h2{font-size:15px;margin:0}.ph select{width:auto}
+.cv{position:relative;height:280px}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px;white-space:nowrap}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:right}
+th:first-child,td:first-child,th:nth-child(2),td:nth-child(2){text-align:left}
+th{color:var(--muted);font-size:11px;text-transform:uppercase;cursor:pointer;position:sticky;top:0;background:var(--card)}
+.btn{background:var(--brand);color:#fff;border:0;padding:9px 14px;border-radius:10px;font:inherit;font-weight:600;cursor:pointer}
+.btn.alt{background:var(--brand2);color:var(--brand)}
+.drop{border:2px dashed var(--line);border-radius:14px;padding:26px;text-align:center;color:var(--muted);margin-bottom:12px}
+.drop.over{border-color:var(--brand);background:var(--brand2)}
+.msg{margin:10px 0;font-weight:600}.ok{color:var(--good)}.err{color:#ef4444}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:10px 0}
+code{background:var(--bg);padding:2px 6px;border-radius:6px;font-size:12px}
+.tab{display:none}.tab.on{display:block}
+@media(max-width:860px){
+ .app{grid-template-columns:1fr}
+ .side{position:sticky;top:0;z-index:5;height:auto;display:flex;align-items:center;gap:10px;padding:10px 12px;border-right:0;border-bottom:1px solid var(--line);overflow-x:auto}
+ .logo{margin:0}.logo span{display:none}.nav{display:flex;gap:4px}.nav button{white-space:nowrap;margin:0;width:auto}
+ .grid{grid-template-columns:minmax(0,1fr)}main{padding:14px}.cv{height:240px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+ <aside class="side">
+  <div class="logo"><i>S</i><span>SalesTrack</span></div>
+  <nav class="nav">
+   <button class="on" data-tab="dash">📊 Dashboard</button>
+   <button data-tab="team">👥 Team</button>
+   <button data-tab="quin">🏅 Quintiles</button>
+   <button data-tab="data">📥 Data</button>
+  </nav>
+ </aside>
+ <main>
+  <div class="top">
+   <div><h1 id="title">Sales Performance</h1><div class="sub" id="range"></div></div>
+   <button class="btn alt" id="theme">🌓 Theme</button>
+  </div>
+
+  <div class="filters" id="filters">
+   <label>Store<select id="fStore"></select></label>
+   <label>Employee<select id="fEmp"></select></label>
+   <label>Period<select id="fPre">
+     <option value="all">All dates</option><option value="7">Last 7 days</option><option value="14">Last 14 days</option><option value="30">Last 30 days</option><option value="custom">Custom…</option></select></label>
+   <label>From<input type="date" id="fFrom"></label>
+   <label>To<input type="date" id="fTo"></label>
+  </div>
+
+  <section class="tab on" id="tab-dash">
+   <div class="cards" id="cards"></div>
+   <div class="grid">
+    <div class="panel wide"><div class="ph"><h2>Daily progress &amp; trend</h2><select id="mTrend"></select></div><div class="cv"><canvas id="cTrend"></canvas></div></div>
+    <div class="panel"><div class="ph"><h2>Performance by employee</h2><select id="mEmp"></select></div><div class="cv"><canvas id="cEmp"></canvas></div></div>
+    <div class="panel"><div class="ph"><h2>Store comparison</h2></div><div class="cv"><canvas id="cStore"></canvas></div></div>
+    <div class="panel"><div class="ph"><h2>Product mix</h2></div><div class="cv"><canvas id="cMix"></canvas></div></div>
+    <div class="panel"><div class="ph"><h2>Quality: CSAT (0–10), P360 &amp; Premium Plan (%)</h2></div><div class="cv"><canvas id="cQual"></canvas></div></div>
+   </div>
+  </section>
+
+  <section class="tab" id="tab-team">
+   <div class="panel"><div class="ph"><h2>Employee summary <span class="sub">(click a header to sort)</span></h2></div><div class="tw"><table id="tbl"></table></div></div>
+  </section>
+
+  <section class="tab" id="tab-quin">
+   <div class="panel">
+    <div class="ph"><h2>Quintile positions</h2></div>
+    <p class="sub">Set each employee’s quintile for the whole company and within their store, plus each store’s quintile (Q1 = top 20%, Q5 = bottom 20%). Changes show on the dashboard card right away and are remembered in this browser. You can also load them from Excel: a sheet named <code>Quintiles</code> with <code>Store</code>, <code>Employee</code>, <code>Company Quintile</code>, <code>Store Quintile</code> columns, and a sheet named <code>Store Quintiles</code> with <code>Store</code>, <code>Quintile</code> columns.</p>
+    <div class="row"><button class="btn alt" id="qAuto">Auto-fill from performance (overwrites)</button><button class="btn alt" id="qClear">Clear all</button></div>
+    <h3 style="font-size:14px;margin:16px 0 6px">Stores</h3><div class="tw"><table id="qStores"></table></div>
+    <h3 style="font-size:14px;margin:16px 0 6px">Employees</h3><div class="tw"><table id="qEmps"></table></div>
+   </div>
+  </section>
+
+  <section class="tab" id="tab-data">
+   <div class="panel">
+    <div class="ph"><h2>Shared dashboard</h2></div>
+    <div id="shareMsg" class="sub">Checking shared storage…</div>
+    <div class="row"><input type="password" id="pw" placeholder="Password" autocomplete="current-password"><button class="btn alt" id="signin">Sign in</button><button class="btn" id="pubShared" style="display:none">Save to shared dashboard</button></div>
+    <p class="sub">Editors sign in with the editor password to load and save data. Everyone else just opens the link (or signs in with the viewer password, if one is set).</p>
+   </div>
+   <div class="panel" style="margin-top:14px">
+    <div class="ph"><h2>Load your Excel data</h2></div>
+    <div class="drop" id="drop">Drag &amp; drop an <b>.xlsx / .xls / .csv</b> file here<br><br><input type="file" id="file" accept=".xlsx,.xls,.csv" hidden><button class="btn" id="pick">Choose file</button></div>
+    <div class="row"><label><input type="checkbox" id="append"> Add to existing data instead of replacing</label></div>
+    <p class="sub">Or copy cells from Excel (including the header row) and paste below:</p>
+    <textarea id="paste" rows="5" placeholder="Date&#9;Store&#9;Employee&#9;Role&#9;Activations…"></textarea>
+    <div class="row"><button class="btn" id="load">Load pasted data</button><button class="btn alt" id="sample">Reset to sample data</button><button class="btn alt" id="copyHdr">Copy column headers</button></div>
+    <div class="msg" id="msg"></div>
+    <p class="sub">Expected columns (one row per employee per day; every sheet in a workbook is read):<br>
+     <code>Date</code> <code>Store</code> <code>Employee</code> <code>Role</code> <code>Activations</code> <code>Voice Activations</code> <code>New BAN</code> <code>BTS</code> <code>HSI</code> <code>Accessories</code> <code>Rebiz Conversion</code> <code>Interactions</code> <code>CSAT</code> <code>Visa Applications</code> <code>Premium Plan</code> <code>P360 Index</code> <code>TMIX Spiff</code> <code>Visa Spiff</code></p>
+   </div>
+   <div class="panel" style="margin-top:14px"><div class="ph"><h2>Targets</h2></div><p class="sub">Enter the monthly target <b>per employee</b>. Card totals are multiplied by the number of employees selected and prorated to the selected dates. CSAT and P360 are goal averages. To load store targets from Excel, add a sheet named <code>Targets</code> with a <code>Store</code> column plus one column per metric (or <code>Store</code>, <code>Metric</code>, <code>Target</code> columns). Each store’s monthly total is divided evenly among that store’s employees. Without a Store column, the values are treated as per-employee targets.</p><div class="tgrid" id="tgrid"></div><div id="tgInfo"></div></div>
+   <div class="panel" style="margin-top:14px"><div class="ph"><h2>Data preview <span class="sub" id="cnt"></span></h2></div><div class="tw" style="max-height:340px;overflow:auto"><table id="prev"></table></div></div>
+  </section>
+ </main>
+</div>
+
+<script>
+// ---------- 1. Metric definitions (edit labels / aliases here) ----------
+const M=[
+ {k:'act',l:'Total Activations',a:['activations']},
+ {k:'voice',l:'Voice Activations',a:['voiceactivations','voice']},
+ {k:'ban',l:'New BAN',a:['newban','ban']},
+ {k:'bts',l:'BTS',a:['bts']},
+ {k:'hsi',l:'HSI',a:['hsi']},
+ {k:'acc',l:'Accessories',a:['accessories']},
+ {k:'rebiz',l:'Rebiz Conversion',avg:1,suf:'%',a:['rebizconversion','rebiz']},
+ {k:'inter',l:'Interactions',a:['interactions']},
+ {k:'csat',l:'CSAT Score',avg:1,suf:' / 10',a:['csat','csatscore']},
+ {k:'visa',l:'Visa Applications',hide:1,a:['visaapplications','visa']},
+ {k:'prem',l:'Premium Plan',avg:1,suf:'%',a:['premiumplan','premium']},
+ {k:'p360',l:'P360 Index',avg:1,suf:'%',a:['p360index','p360']},
+ {k:'tmix',l:'TMIX Spiff',pre:'$',a:['tmixspiff','tmix']},
+ {k:'vspiff',l:'Visa Spiff',pre:'$',a:['visaspiff']}
+];
+const COLORS=['--c1','--c2','--c3','--c4','--c5','--c6','--c7'];
+const $=id=>document.getElementById(id);
+let rows=[],charts={},sortKey='act',sortDir=-1;
+
+// ---------- 2. Sample data (2 stores, 16 employees) ----------
+function sampleData(){
+ let s=42;const r=()=>{s|=0;s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
+ const ri=(a,b)=>Math.round(a+r()*(b-a));
+ const staff=[
+  ['Downtown','Maria Lopez','Manager'],['Downtown','James Carter'],['Downtown','Aisha Khan'],['Downtown','Tyler Brooks'],['Downtown','Sofia Reyes'],['Downtown','Daniel Kim'],['Downtown','Priya Patel'],['Downtown','Marcus Hill'],
+  ['Westside','Linda Nguyen','Manager'],['Westside','Omar Farouk'],['Westside','Emily Stone'],['Westside','Carlos Diaz'],['Westside','Hannah Lee'],['Westside','Brian Wu'],['Westside','Jasmine Ford']
+ ];
+ staff.splice(15,0,['Westside','Kevin Murphy']); // 8 + 8 = 16 people
+ const out=[];
+ staff.forEach(([store,name,role])=>{
+  const sk=0.7+r()*0.7,mgr=role==='Manager';
+  for(let d=1;d<=31;d++){
+   const dt=new Date(Date.UTC(2026,9,d)),dow=dt.getUTCDay();
+   if(r()>(mgr?0.6:dow==0?0.5:0.82))continue;
+   const f=sk*(mgr?0.55:1)*(dow==6?1.25:1);
+   const inter=ri(22,45)*f|0,act=Math.round(inter*(0.12+r()*0.12));
+   const voice=Math.min(act,Math.round(act*(0.45+r()*0.3))),ban=Math.min(act,Math.round(act*(0.2+r()*0.3)));
+   const visa=ri(0,3)*(f>1?1:0.6)|0,tmix=Math.round(act*(4+r()*4)+ri(0,15));
+   out.push({date:dt.toISOString().slice(0,10),store,emp:name,role:role||'Rep',act,voice,ban,
+    bts:ri(0,2),hsi:ri(0,2),acc:Math.round(ri(1,9)*f),rebiz:ri(25,85),inter,csat:+(8+r()*2).toFixed(1),visa,prem:ri(15,60),
+    p360:ri(62,96),tmix,vspiff:visa*10});
+  }
+ });
+ return out;
+}
+
+// ---------- 3. Reading Excel / CSV ----------
+const norm=s=>String(s).toLowerCase().replace(/[^a-z0-9]/g,'');
+const colAlias={date:['date','day'],store:['store','location'],emp:['employee','name','rep','associate'],role:['role','title','position']};
+M.forEach(m=>colAlias[m.k]=m.a);
+function toISO(v){
+ if(v instanceof Date)return new Date(v.getTime()+12*36e5).toISOString().slice(0,10);
+ if(typeof v==='number')return new Date(Math.round((v-25569)*864e5)+12*36e5).toISOString().slice(0,10);
+ const d=new Date(v);return isNaN(d)?null:new Date(d.getTime()+12*36e5).toISOString().slice(0,10);
+}
+function parseWorkbook(wb){
+ const out=[];
+ wb.SheetNames.forEach(n=>{
+  if(/target/i.test(n)){loadTargets(wb.Sheets[n]);return;}
+  if(/quintile/i.test(n)){loadQuintiles(wb.Sheets[n]);return;}
+  XLSX.utils.sheet_to_json(wb.Sheets[n],{defval:''}).forEach(raw=>{
+   const o={};
+   Object.keys(raw).forEach(h=>{const nh=norm(h);for(const k in colAlias)if(colAlias[k].includes(nh))o[k]=raw[h];});
+   const date=o.date!==undefined&&o.date!==''?toISO(o.date):null;
+   if(!date||!o.emp)return;
+   const row={date,store:String(o.store||'Store').trim(),emp:String(o.emp).trim(),role:String(o.role||'Rep').trim()};
+   M.forEach(m=>{const v=parseFloat(String(o[m.k]).replace(/[$,%]/g,''));row[m.k]=isNaN(v)?(m.avg?null:0):v;});
+   out.push(row);
+  });
+ });
+ return out;
+}
+function setRows(newRows,label){
+ if(!newRows.length){msg('No valid rows found. Check that the headers include Date and Employee.',1);return;}
+ rows=$('append').checked&&label!=='sample'?rows.concat(newRows):newRows;
+ msg('Loaded '+newRows.length+' rows ('+label+'). Total rows now: '+rows.length+'.');
+ initFilters();render();
+}
+function msg(t,bad){const m=$('msg');m.textContent=t;m.className='msg '+(bad?'err':'ok');}
+function handleFile(f){
+ const rd=new FileReader();
+ rd.onload=e=>{try{setRows(parseWorkbook(XLSX.read(e.target.result,{type:'array',cellDates:true})),f.name);}catch(x){msg('Could not read file: '+x.message,1);}};
+ rd.readAsArrayBuffer(f);
+}
+$('pick').onclick=()=>$('file').click();
+$('file').onchange=e=>e.target.files[0]&&handleFile(e.target.files[0]);
+const dz=$('drop');
+['dragover','dragenter'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.add('over')}));
+['dragleave','drop'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.remove('over')}));
+dz.addEventListener('drop',e=>e.dataTransfer.files[0]&&handleFile(e.dataTransfer.files[0]));
+$('load').onclick=()=>{try{setRows(parseWorkbook(XLSX.read($('paste').value,{type:'string',cellDates:true,raw:true})),'pasted data');}catch(x){msg('Could not read pasted data.',1);}};
+$('sample').onclick=()=>{$('append').checked=false;setRows(sampleData(),'sample');};
+$('copyHdr').onclick=()=>{
+ const h=['Date','Store','Employee','Role',...M.map(m=>m.l.replace('Total ',''))].join('\t');
+ (navigator.clipboard?navigator.clipboard.writeText(h):Promise.reject()).then(()=>msg('Headers copied. Paste into cell A1 in Excel.')).catch(()=>{$('paste').value=h;msg('Headers placed in the box above. Copy them into Excel.');});
+};
+
+// ---------- 4. Filters ----------
+const uniq=a=>[...new Set(a)].sort();
+function opt(sel,vals,all){sel.innerHTML='<option value="">'+all+'</option>'+vals.map(v=>`<option>${v}</option>`).join('');}
+function initFilters(){
+ opt($('fStore'),uniq(rows.map(r=>r.store)),'All stores');
+ fillEmp();
+ const ds=rows.map(r=>r.date).sort();$('fFrom').value=ds[0]||'';$('fTo').value=ds[ds.length-1]||'';$('fPre').value='all';
+}
+function fillEmp(){const s=$('fStore').value;opt($('fEmp'),uniq(rows.filter(r=>!s||r.store===s).map(r=>r.emp)),'All employees');}
+$('fStore').onchange=()=>{fillEmp();render();};
+$('fEmp').onchange=render;
+$('fFrom').onchange=$('fTo').onchange=()=>{$('fPre').value='custom';render();};
+$('fPre').onchange=()=>{
+ const v=$('fPre').value,ds=rows.map(r=>r.date).sort(),last=ds[ds.length-1];
+ if(v==='all'){$('fFrom').value=ds[0];$('fTo').value=last;}
+ else if(v!=='custom'){const d=new Date(last+'T12:00:00Z');d.setUTCDate(d.getUTCDate()-(+v-1));$('fFrom').value=d.toISOString().slice(0,10);$('fTo').value=last;}
+ render();
+};
+function filtered(){
+ const s=$('fStore').value,e=$('fEmp').value,a=$('fFrom').value,b=$('fTo').value;
+ return rows.filter(r=>(!s||r.store===s)&&(!e||r.emp===e)&&(!a||r.date>=a)&&(!b||r.date<=b));
+}
+
+// ---------- 5. Helpers ----------
+function agg(list,k){
+ const m=M.find(x=>x.k===k);
+ if(m.avg){const v=list.filter(r=>r[k]!=null);return v.length?v.reduce((t,r)=>t+r[k],0)/v.length:0;}
+ return list.reduce((t,r)=>t+r[k],0);
+}
+function fmt(v,m){const n=m.avg?v.toFixed(1):Math.round(v).toLocaleString();return(m.pre||'')+n+(m.suf||'');}
+function group(list,key){const g={};list.forEach(r=>(g[r[key]]=g[r[key]]||[]).push(r));return g;}
+const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+function chart(id,cfg){
+ if(charts[id])charts[id].destroy();
+ Chart.defaults.color=css('--muted');Chart.defaults.borderColor=css('--line');
+ cfg.options=Object.assign({responsive:true,maintainAspectRatio:false},cfg.options||{});
+ charts[id]=new Chart($(id),cfg);
+}
+
+// ---------- Targets (monthly, per employee) ----------
+const TG={act:150,voice:90,ban:55,bts:25,hsi:25,acc:120,rebiz:60,inter:800,csat:9,visa:25,prem:35,p360:80,tmix:1100,vspiff:250};
+const TGS={}; // store targets: TGS[store][metric] = monthly store total
+function buildTargets(){
+ $('tgrid').innerHTML=M.filter(m=>!m.hide).map(m=>`<label>${m.l}${m.avg?' (goal avg)':''}<input type="number" min="0" step="any" data-k="${m.k}" value="${TG[m.k]}"></label>`).join('');
+ $('tgrid').querySelectorAll('input').forEach(i=>i.oninput=()=>{TG[i.dataset.k]=+i.value||0;cfgSave();render();});
+}
+function loadTargets(ws){
+ const findM=h=>{const n=norm(h);return M.find(x=>norm(x.l)===n||norm(x.l).replace('total','')===n||x.a.includes(n));};
+ XLSX.utils.sheet_to_json(ws,{defval:''}).forEach(r=>{
+  const ks=Object.keys(r),sk=ks.find(k=>/store|location/i.test(k)),store=sk?String(r[sk]).trim():'';
+  const mk=ks.find(k=>/^(metric|kpi|measure)/i.test(k)),tk=ks.find(k=>/target|goal/i.test(k));
+  const put=(m,v)=>{v=parseFloat(String(v).replace(/[$,%]/g,''));if(isNaN(v))return;if(store)(TGS[store]=TGS[store]||{})[m.k]=v;else TG[m.k]=v;};
+  if(mk&&tk){const m=findM(r[mk]);if(m)put(m,r[tk]);}
+  else ks.forEach(h=>{const m=findM(h);if(m)put(m,r[h]);});
+ });
+ buildTargets();
+}
+const spanDays=(a,b)=>Math.round((new Date(b)-new Date(a))/864e5)+1;
+function headcount(store){return new Set(rows.filter(r=>r.store===store).map(r=>r.emp)).size||1;}
+// Per-employee monthly target: store total ÷ store headcount (sum metrics), or the default per-employee target
+function empTarget(store,k){
+ const st=TGS[store];
+ if(st&&st[k]!=null)return M.find(m=>m.k===k).avg?st[k]:st[k]/headcount(store);
+ return TG[k];
+}
+function tgt(list,k,nDays){
+ const emps=new Map();list.forEach(r=>emps.set(r.emp+'|'+r.store,r.store));
+ if(!emps.size)return 0;
+ let t=0;emps.forEach(s=>t+=empTarget(s,k));
+ return M.find(m=>m.k===k).avg?t/emps.size:t*nDays/31;
+}
+function pctTo(list,k,nDays){const t=tgt(list,k,nDays);return t?agg(list,k)/t*100:0;}
+function tgInfo(){
+ const ss=Object.keys(TGS);
+ if(!ss.length){$('tgInfo').innerHTML='<p class="sub">No store targets loaded. Using the per-employee targets above.</p>';return;}
+ $('tgInfo').innerHTML='<p class="sub" style="margin-top:14px"><b>Store targets loaded.</b> Each store’s monthly total is divided evenly among its employees (CSAT, P360 and Premium Plan are goals, so they are not divided).</p><div class="tw"><table><thead><tr><th>Metric</th>'+ss.map(s=>`<th>${s} total (÷${headcount(s)})</th><th>Per employee</th>`).join('')+'</tr></thead><tbody>'+M.map(m=>`<tr><td>${m.l}</td>`+ss.map(s=>{const v=TGS[s][m.k];return v==null?'<td>–</td><td>–</td>':`<td>${fmt(v,m)}</td><td>${fmt(empTarget(s,m.k),m)}</td>`;}).join('')+'</tr>').join('')+'</tbody></table></div><div class="row"><button class="btn alt" id="clrTg">Clear store targets</button></div>';
+ $('clrTg').onclick=()=>{for(const s in TGS)delete TGS[s];cfgSave();render();};
+}
+
+// ---------- Quintile position ----------
+const QC=['#16a34a','#65a30d','#f59e0b','#f97316','#ef4444'];
+const quint=(rank,n)=>Math.floor((rank-1)/n*5)+1;
+function score(list,n){const p=M.filter(m=>!m.hide).map(m=>Math.min(pctTo(list,m.k,n),150));return p.reduce((a,b)=>a+b,0)/p.length;}
+// Quintiles are entered by you (Quintiles tab or Excel), not calculated
+const QN={emp:{},store:{}}; // QN.emp[name]={c:1-5 company, s:1-5 store}; QN.store[store]=1-5
+let skipQ=false,qEmps=[],qStores=[];
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function qSave(){try{localStorage.setItem('qn',JSON.stringify(QN));}catch(e){}}
+function qLoad(){try{const x=JSON.parse(localStorage.getItem('qn')||'null');if(x&&x.emp&&x.store){QN.emp=x.emp;QN.store=x.store;}}catch(e){}}
+function loadQuintiles(ws){
+ const nq=v=>{v=parseInt(String(v).replace(/\D/g,''),10);return v>=1&&v<=5?v:null;};
+ XLSX.utils.sheet_to_json(ws,{defval:''}).forEach(r=>{
+  const ks=Object.keys(r),f=re=>ks.find(k=>re.test(k));
+  const ek=f(/employee|associate|^rep/i),sk=ks.find(k=>/^(store|location)$/i.test(k.trim())),ck=f(/company|overall/i),stk=f(/store.*quintile|quintile.*store/i),gk=f(/quintile/i);
+  if(ek&&String(r[ek]).trim()){
+   const name=String(r[ek]).trim(),o=QN.emp[name]=QN.emp[name]||{},c=ck?nq(r[ck]):null,s=stk?nq(r[stk]):null;
+   if(c)o.c=c;if(s)o.s=s;
+  }else if(sk&&String(r[sk]).trim()){
+   const q=nq(r[stk||gk||ck]);if(q)QN.store[String(r[sk]).trim()]=q;
+  }
+ });
+ qSave();
+}
+function autoFill(){
+ const ds=rows.map(r=>r.date).sort(),n=spanDays(ds[0],ds[ds.length-1]);
+ const byE=group(rows,'emp'),byS=group(rows,'store');
+ const sc=Object.keys(byE).map(e=>({e,store:byE[e][0].store,s:score(byE[e],n)})).sort((x,y)=>y.s-x.s);
+ const ss=Object.keys(byS).map(e=>({e,s:score(byS[e],n)})).sort((x,y)=>y.s-x.s);
+ QN.emp={};QN.store={};
+ sc.forEach((x,i)=>{const st=sc.filter(y=>y.store===x.store);QN.emp[x.e]={c:quint(i+1,sc.length),s:quint(st.indexOf(x)+1,st.length)};});
+ ss.forEach((x,i)=>QN.store[x.e]=quint(i+1,ss.length));
+}
+function renderQ(){
+ const opt=v=>'<option value="">–</option>'+[1,2,3,4,5].map(i=>`<option value="${i}"${v===i?' selected':''}>Q${i}</option>`).join('');
+ qStores=uniq(rows.map(r=>r.store));
+ $('qStores').innerHTML='<thead><tr><th>Store</th><th>Store quintile</th></tr></thead><tbody>'+qStores.map((s,i)=>`<tr><td>${esc(s)}</td><td><select class="qsel" data-t="s" data-i="${i}"${LOCK?' disabled':''}>${opt(QN.store[s])}</select></td></tr>`).join('')+'</tbody>';
+ qEmps=[...new Map(rows.map(r=>[r.emp,r.store]))].map(([e,s])=>({e,s})).sort((a,b)=>a.s.localeCompare(b.s)||a.e.localeCompare(b.e));
+ $('qEmps').innerHTML='<thead><tr><th>Employee</th><th>Store</th><th>Company quintile</th><th>Store quintile</th></tr></thead><tbody>'+qEmps.map((x,i)=>{const o=QN.emp[x.e]||{};return `<tr><td>${esc(x.e)}</td><td>${esc(x.s)}</td><td><select class="qsel" data-t="e" data-f="c" data-i="${i}"${LOCK?' disabled':''}>${opt(o.c)}</select></td><td><select class="qsel" data-t="e" data-f="s" data-i="${i}"${LOCK?' disabled':''}>${opt(o.s)}</select></td></tr>`;}).join('')+'</tbody>';
+}
+$('tab-quin').onchange=e=>{
+ const t=e.target;if(!t.classList.contains('qsel'))return;
+ const v=t.value?+t.value:null,i=+t.dataset.i;
+ if(t.dataset.t==='s'){if(v)QN.store[qStores[i]]=v;else delete QN.store[qStores[i]];}
+ else{const n=qEmps[i].e,o=QN.emp[n]=QN.emp[n]||{};if(v)o[t.dataset.f]=v;else delete o[t.dataset.f];}
+ qSave();cfgSave();skipQ=true;render();skipQ=false;
+};
+$('qAuto').onclick=()=>{autoFill();qSave();cfgSave();renderQ();render();};
+$('qClear').onclick=()=>{QN.emp={};QN.store={};qSave();cfgSave();renderQ();render();};
+function quintileCard(){
+ const E=$('fEmp').value,S=$('fStore').value,lab=v=>v?'Q'+v:'Not set';
+ let q=null,lines=[];
+ if(E){
+  const store=(rows.find(r=>r.emp===E)||{}).store,o=QN.emp[E]||{};
+  q=o.c||null;
+  lines=[`Company: <b>${lab(o.c)}</b>`,`${esc(store)}: <b>${lab(o.s)}</b>`];
+  if(!o.c&&!o.s)lines.push('Set this in the Quintiles tab');
+ }else if(S){
+  q=QN.store[S]||null;
+  const emps=uniq(rows.filter(r=>r.store===S).map(r=>r.emp));
+  const dist=[1,2,3,4,5].map(i=>`Q${i}: ${emps.filter(e=>(QN.emp[e]||{}).c===i).length}`).join(' · ');
+  lines=[`Store: <b>${lab(q)}</b>`,'Reps by company quintile — '+dist];
+  if(!q)lines.push('Set this in the Quintiles tab');
+ }else lines=['Pick a store or employee to see the position',uniq(rows.map(r=>r.store)).map(s=>`${esc(s)}: <b>${lab(QN.store[s])}</b>`).join(' · ')];
+ const seg=[1,2,3,4,5].map(i=>`<i class="${i===q?'on':''}" style="--q:${QC[i-1]}"></i>`).join('');
+ return `<div class="card q" style="--c:${q?QC[q-1]:'var(--brand)'}"><div class="l">Quintile Position (Q1 = top 20%)</div><div class="qb" style="color:${q?QC[q-1]:'inherit'}">${q?'Q'+q:'—'}</div><div class="qs">${seg}</div>${lines.map(x=>`<div class="s">${x}</div>`).join('')}</div>`;
+}
+function priorList(){
+ const a=$('fFrom').value,b=$('fTo').value;if(!a||!b)return[];
+ const n=spanDays(a,b),end=new Date(a+'T12:00:00Z');end.setUTCDate(end.getUTCDate()-1);
+ const st=new Date(end);st.setUTCDate(st.getUTCDate()-(n-1));
+ const e=end.toISOString().slice(0,10),s=st.toISOString().slice(0,10),S=$('fStore').value,E=$('fEmp').value;
+ return rows.filter(r=>(!S||r.store===S)&&(!E||r.emp===E)&&r.date>=s&&r.date<=e);
+}
+
+// ---------- 6. Render ----------
+function render(){
+ const list=filtered(),col=COLORS.map(css);tgInfo();if(!skipQ)renderQ();
+ const who=$('fEmp').value||$('fStore').value||'All stores';
+ $('title').textContent=who+' — Performance';
+ $('range').textContent=list.length?`${$('fFrom').value} to ${$('fTo').value} · ${new Set(list.map(r=>r.emp)).size} employees · ${new Set(list.map(r=>r.date)).size} days`:'No data for this selection';
+
+ // summary cards
+ const n=$('fFrom').value&&$('fTo').value?spanDays($('fFrom').value,$('fTo').value):1,prior=priorList(),nEmp=new Set(list.map(r=>r.emp)).size;
+ $('cards').innerHTML=quintileCard(n)+M.filter(m=>!m.hide).map((m,i)=>{
+  const v=agg(list,m.k),t=tgt(list,m.k,n),p=t?v/t*100:0;
+  const c=p>=100?'#16a34a':p>=80?'#f59e0b':'#ef4444';
+  let tr='<span class="s">No prior period</span>';
+  if(prior.length){const d=p-pctTo(prior,m.k,n);tr=`<span class="tr" style="color:${d>=0?'#16a34a':'#ef4444'}">${d>=0?'▲':'▼'} ${Math.abs(d).toFixed(1)} pts</span> <span class="s">vs prior</span>`;}
+  return `<div class="card" style="--c:${col[i%7]}"><div class="l">${m.l}</div><div class="v">${fmt(v,m)}</div><div class="s">${m.avg?'Goal':'Total target'}: <b>${fmt(t,m)}</b></div><div class="bar"><b style="width:${Math.min(p,100)}%;background:${c}"></b></div><div class="s"><b style="color:${c}">${p.toFixed(0)}%</b> to target · ${tr}</div></div>`;
+ }).join('');
+
+ // daily trend (+7 day moving average)
+ const mk=$('mTrend').value,mm=M.find(x=>x.k===mk),byDay=group(list,'date'),dates=Object.keys(byDay).sort();
+ const vals=dates.map(d=>+agg(byDay[d],mk).toFixed(1));
+ const ma=vals.map((_,i)=>{const w=vals.slice(Math.max(0,i-6),i+1);return +(w.reduce((a,b)=>a+b,0)/w.length).toFixed(1);});
+ chart('cTrend',{type:'bar',data:{labels:dates.map(d=>d.slice(5)),datasets:[
+  {label:mm.l+' (daily)',data:vals,backgroundColor:col[0]+'99',borderRadius:4},
+  {type:'line',label:'7-day average',data:ma,borderColor:col[2],backgroundColor:col[2],tension:.3,pointRadius:0,borderWidth:3}]}});
+
+ // by employee
+ const ek=$('mEmp').value,em=M.find(x=>x.k===ek),byE=group(list,'emp');
+ const es=Object.keys(byE).map(n=>[n,agg(byE[n],ek)]).sort((a,b)=>b[1]-a[1]);
+ chart('cEmp',{type:'bar',data:{labels:es.map(x=>x[0]),datasets:[{label:em.l,data:es.map(x=>+x[1].toFixed(1)),backgroundColor:col[1],borderRadius:4}]},options:{indexAxis:'y',plugins:{legend:{display:false}}}});
+
+ // store comparison
+ const byS=group(list,'store'),keys=['act','voice','ban','bts','hsi','visa'];
+ chart('cStore',{type:'bar',data:{labels:keys.map(k=>M.find(m=>m.k===k).l),datasets:Object.keys(byS).sort().map((s,i)=>({label:s,data:keys.map(k=>agg(byS[s],k)),backgroundColor:col[i*2],borderRadius:4}))}});
+
+ // product mix
+ const mix=['voice','ban','bts','hsi','acc','visa'];
+ chart('cMix',{type:'doughnut',data:{labels:mix.map(k=>M.find(m=>m.k===k).l),datasets:[{data:mix.map(k=>agg(list,k)),backgroundColor:col,borderColor:css('--card')}]},options:{plugins:{legend:{position:'right'}}}});
+
+ // quality lines
+ chart('cQual',{type:'line',data:{labels:dates.map(d=>d.slice(5)),datasets:[
+  {label:'CSAT (0–10, right axis)',yAxisID:'y1',data:dates.map(d=>+agg(byDay[d],'csat').toFixed(1)),borderColor:col[4],tension:.3,pointRadius:2},
+  {label:'P360 %',data:dates.map(d=>+agg(byDay[d],'p360').toFixed(1)),borderColor:col[5],tension:.3,pointRadius:2},
+  {label:'Premium Plan %',data:dates.map(d=>+agg(byDay[d],'prem').toFixed(1)),borderColor:col[2],tension:.3,pointRadius:2}]},
+  options:{scales:{y:{min:0,max:100,title:{display:true,text:'%'}},y1:{position:'right',min:0,max:10,grid:{drawOnChartArea:false},title:{display:true,text:'CSAT'}}}}});
+
+ renderTable(list);renderPreview();
+}
+function renderTable(list){
+ const byE=group(list,'emp');
+ let data=Object.keys(byE).map(n=>{const r=byE[n][0],o={emp:n,store:r.store};M.forEach(m=>o[m.k]=agg(byE[n],m.k));return o;});
+ data.sort((a,b)=>sortKey==='emp'||sortKey==='store'?sortDir*String(a[sortKey]).localeCompare(b[sortKey]):sortDir*(a[sortKey]-b[sortKey]));
+ $('tbl').innerHTML='<thead><tr><th data-k="emp">Employee</th><th data-k="store">Store</th>'+M.map(m=>`<th data-k="${m.k}">${m.l.replace('Total ','')}</th>`).join('')+'</tr></thead><tbody>'+
+  data.map(o=>`<tr><td>${o.emp}</td><td>${o.store}</td>${M.map(m=>`<td>${fmt(o[m.k],m)}</td>`).join('')}</tr>`).join('')+'</tbody>';
+ $('tbl').querySelectorAll('th').forEach(th=>th.onclick=()=>{const k=th.dataset.k;sortDir=sortKey===k?-sortDir:-1;sortKey=k;renderTable(filtered());});
+}
+function renderPreview(){
+ $('cnt').textContent='('+rows.length+' rows loaded, showing first 25)';
+ $('prev').innerHTML='<thead><tr><th>Date</th><th>Store</th><th>Employee</th><th>Role</th>'+M.map(m=>`<th>${m.l.replace('Total ','')}</th>`).join('')+'</tr></thead><tbody>'+
+  rows.slice(0,25).map(r=>`<tr><td>${r.date}</td><td>${r.store}</td><td>${r.emp}</td><td>${r.role}</td>${M.map(m=>`<td>${r[m.k]??''}</td>`).join('')}</tr>`).join('')+'</tbody>';
+}
+
+// ---------- Shared saved data (Netlify Function + Netlify Blobs) ----------
+// Editors save data once to /api/data; everyone who opens the site loads it. Without the server (e.g. opening the file locally) it works in this browser only.
+const API='/api/data';
+let role='local',isWriter=false,LOCK=false,lastV=0,cfgT=null;
+let PW='';try{PW=localStorage.getItem('dash_pw')||'';}catch(e){}
+function setShare(t,bad){const e=$('shareMsg');e.textContent=t;e.style.color=bad?'#ef4444':'';}
+function cloneJ(x){return JSON.parse(JSON.stringify(x));}
+function apiHeaders(){return {'content-type':'application/json','x-auth':PW};}
+function cfgBody(){
+ const emps=new Set(rows.map(r=>r.emp)),sts=new Set(rows.map(r=>r.store)),qn={emp:{},store:{}};
+ emps.forEach(e=>{if(QN.emp[e])qn.emp[e]=QN.emp[e];});sts.forEach(s=>{if(QN.store[s]!=null)qn.store[s]=QN.store[s];});
+ return {tg:cloneJ(TG),tgs:cloneJ(TGS),qn};
+}
+function setRole(r){
+ role=r;isWriter=r==='editor';LOCK=r==='viewer';
+ $('pubShared').style.display=isWriter?'':'none';
+ $('qAuto').style.display=$('qClear').style.display=LOCK?'none':'';
+ renderQ();
+}
+function applyState(st){
+ if(st.rows&&st.rows.length){
+  rows=st.rows.map(a=>{const o={date:a[0],store:a[1],emp:a[2],role:a[3]};M.forEach((m,i)=>o[m.k]=a[4+i]);return o;});
+  initFilters();
+ }
+ if(st.tg)Object.keys(st.tg).forEach(k=>TG[k]=st.tg[k]);
+ for(const s in TGS)delete TGS[s];
+ if(st.tgs)Object.assign(TGS,cloneJ(st.tgs));
+ if(st.qn){QN.emp=cloneJ(st.qn.emp||{});QN.store=cloneJ(st.qn.store||{});qSave();}
+ buildTargets();renderQ();render();
+}
+async function pull(first){
+ let res,j;
+ try{res=await fetch(API+'?since='+lastV,{headers:apiHeaders(),cache:'no-store'});}catch(e){res=null;}
+ if(!res||res.status===404){if(first){setRole('local');setShare('Shared storage is not available here, so data stays in this browser only and is lost on refresh.');}return;}
+ if(res.status===401){
+  setRole('viewer');setShare('This dashboard is password protected. Enter the password above and click Sign in.',1);
+  if(first)document.querySelector('.nav button[data-tab="data"]').click();
+  return;
+ }
+ try{j=await res.json();}catch(e){j=null;}
+ if(!res.ok||!j){if(first){setRole('local');setShare('Shared storage returned an error ('+res.status+'). Working in this browser only.',1);}return;}
+ setRole(j.role);
+ if(j.unchanged)return;
+ if(!j.state){setShare(isWriter?'Signed in as editor. Load your Excel file below, then click Save to shared dashboard so everyone sees it.':'No shared data has been saved yet. Showing sample data.');return;}
+ lastV=j.state.v;applyState(j.state);
+ setShare((isWriter?'Signed in as editor. ':'Viewing shared data. ')+'Loaded '+rows.length.toLocaleString()+' rows, last saved '+new Date(j.state.updated).toLocaleString()+'.');
+}
+async function publishShared(){
+ if(!isWriter)return;
+ const btn=$('pubShared');btn.disabled=true;setShare('Saving to the shared dashboard…');
+ try{
+  const enc=rows.map(r=>[r.date,r.store,r.emp,r.role,...M.map(m=>r[m.k])]);
+  const res=await fetch(API,{method:'PUT',headers:apiHeaders(),body:JSON.stringify(Object.assign({rows:enc},cfgBody()))});
+  const j=await res.json().catch(()=>({}));
+  if(!res.ok)throw new Error(j.error||('HTTP '+res.status));
+  lastV=j.v;
+  setShare('Saved '+enc.length.toLocaleString()+' rows, targets and quintiles. Everyone who opens this site now sees them.');
+ }catch(e){setShare('Save failed: '+e.message,1);}
+ btn.disabled=false;
+}
+function cfgSave(){
+ if(!isWriter)return;clearTimeout(cfgT);
+ cfgT=setTimeout(async()=>{
+  try{
+   const res=await fetch(API,{method:'PATCH',headers:apiHeaders(),body:JSON.stringify(cfgBody())});
+   const j=await res.json().catch(()=>({}));
+   if(!res.ok)throw new Error(j.error||('HTTP '+res.status));
+   lastV=j.v;
+  }catch(e){setShare('Could not save targets/quintiles: '+e.message,1);}
+ },800);
+}
+async function initShared(){
+ $('pubShared').onclick=publishShared;
+ const signIn=()=>{PW=$('pw').value;try{localStorage.setItem('dash_pw',PW);}catch(e){}lastV=0;pull(true);};
+ $('signin').onclick=signIn;
+ $('pw').onkeydown=e=>{if(e.key==='Enter')signIn();};
+ if(PW)$('pw').placeholder='Password (saved on this device)';
+ await pull(true);
+ if(role!=='local')setInterval(()=>{if(!document.hidden)pull(false);},30000);
+}
+
+// ---------- 7. Navigation, theme & start-up ----------
+document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>{
+ document.querySelectorAll('.nav button').forEach(x=>x.classList.toggle('on',x===b));
+ document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.id==='tab-'+b.dataset.tab));
+ $('filters').style.display=['data','quin'].includes(b.dataset.tab)?'none':'flex';
+ render();
+});
+$('theme').onclick=()=>{
+ const dark=document.documentElement.dataset.theme?document.documentElement.dataset.theme==='dark':matchMedia('(prefers-color-scheme:dark)').matches;
+ document.documentElement.dataset.theme=dark?'light':'dark';render();
+};
+$('mTrend').innerHTML=$('mEmp').innerHTML=M.map(m=>`<option value="${m.k}">${m.l}</option>`).join('');
+$('mEmp').value='act';$('mTrend').onchange=$('mEmp').onchange=render;
+qLoad();rows=sampleData();if(!Object.keys(QN.emp).length&&!Object.keys(QN.store).length)autoFill();buildTargets();initFilters();render();msg('Showing sample data: 2 stores, 16 employees. Load your Excel file to replace it.');
+initShared();
+</script>
+</body>
+</html>
