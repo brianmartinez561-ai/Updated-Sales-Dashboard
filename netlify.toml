@@ -1,3 +1,16 @@
+# Netlify settings for the Quintile dashboard
 [build]
-  publish = "public"
-  functions = "netlify/functions"
+  publish = "public"              # the website (index.html)
+  functions = "netlify/functions" # the /api/data storage + password check
+
+[functions]
+  node_bundler = "esbuild"
+
+# Basic security headers for every page
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "same-origin"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; frame-ancestors 'none'"
